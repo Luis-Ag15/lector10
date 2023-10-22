@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="shortcut icon"
+      type="image/png"
+      href="{% static 'core/imgs/favicon.png' %}" />
+    <title>Lector de Codigo QR con Django - Python y MySQL</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+      integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N"
+      crossorigin="anonymous" />
+    <link rel="stylesheet" href="{% static 'core/css/style_camara.css' %}" />
+    <style>
+      .navbar {
+        height: 55px;
+        background-color: #2196f3;
+        color: #fff;
+        border: none;
+      }
+    </style>
+  </head>
+
+  <body id="mimin" class="dashboard">
+    <nav class="navbar navbar-fixed-top mb-5">
+      <h2>Lector de Códigos QR</h2>
+    </nav>
+
+    <div class="container">
+      <!-- INICIO BLOQUE DE CAMARA -->
+      <div class="row justify-content-md-center">
+        <div class="col-md-12 panel">
+          <div class="col-md-12 panel-heading bg_lightgrey">
+            <h4 class="text-center" style="color: #333; font-weight: bold">
+              REGISTRO DE VISITANTES&nbsp;
+            </h4>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="contenedor_camara">
+            <div class="text-center" id="loadingMessage">
+              🎥 No se puede acceder a la transmisión de video (asegúrese de
+              tener una cámara web habilitada)
+            </div>
+            <canvas id="canvas" hidden></canvas>
+            <div class="mb-4" id="output" hidden>
+              <div id="outputMessage">Aún no se ha detectado código QR</div>
+              <div hidden><b>Código:</b> <span id="outputData"></span></div>
+              {% csrf_token %}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          {% block body %}
+          <div id="resultado"></div>
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+
+    <div style="position: fixed; top: -60px">
+      <audio
+        controls
+        id="sonido_qr"
+        style="width: 0px !important; height: 0px !important">
+        <source src="{% static 'core/sonido/beep.mp3' %}" type="audio/mpeg" />
+      </audio>
+    </div>
+
+    <script src="{% static 'core/js/jquery-3.1.1.min.js' %}"></script>
+
+    <script src="{% static 'core/js/qr/jsQR.js' %}"></script>
+    <script src="{% static 'core/js/scanear_qr.js' %}"></script>
+    <script>
+      function guardar_codigo_escaneado(result_qr) {
+        let csrfToken = $("[name=csrfmiddlewaretoken]").val();
+
+        let formData = {
+          datoqr: parseInt(result_qr),
+          csrfmiddlewaretoken: csrfToken, // Agrega el token CSRF a los datos
+        };
+
+        $.ajax({
+          type: "POST",
+          url: "/buscar-alumno/",
+          data: formData,
+          dataType: "json",
+          success: function (response) {
+            console.log("Respuesta:", response);
+
+            if (response.id_alumno !== undefined) {
+              // Verifica si se recibió el ID del alumno
+              if (response.id_alumno === 0) {
+                // El alumno no existe
+                alert("No existe el alumno");
+                console.log("El alumno no existe");
+              } else {
+                // El alumno existe, response.id_alumno contiene el ID
+                console.log("ID del alumno:", response.id_alumno);
+                let id = parseInt(response.id_alumno);
+                console.log(id);
+                let url = `/detalles-alumno/?id=${id}`;
+                //window.location.href = url;
+                window.open(url, "_blank");
+              }
+            } else {
+              // Error en la respuesta
+              console.error("Error en la respuesta del servidor");
+            }
+          },
+          error: function () {
+            alert("Error en la petición AJAX 😭");
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
